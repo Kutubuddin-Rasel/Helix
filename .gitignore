@@ -1,0 +1,27 @@
+# User Exclusions
+.agent/
+docs/
+config/
+
+# Secrets & Local Config
+.env
+.env.local
+
+# OS & IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Rust (graph-a-observer)
+/graph-a-observer/target/
+target/
+
+# Python (graph-b-orchestrator)
+__pycache__/
+*.pyc
+.venv/
+.mypy_cache/
+
+# Node.js (helix-test-node)
+node_modules/
+npm-debug.log

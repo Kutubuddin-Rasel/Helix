@@ -1,0 +1,149 @@
+# Project Helix - Docker Compose Configuration
+# Version: 1.2 (Constitution Compliant)
+# Last Updated: 2026-01-05
+#
+# Helix Constitution Compliance:
+#   - Pillar 2.3: Network Isolation (127.0.0.1 binding)
+#   - Pillar 4.2: Health Checks
+#   - Pillar 3.2/3.3: Schema initialization on startup
+#
+# Usage:
+#   docker compose up -d              # Start all services
+#   docker compose logs -f            # Follow logs
+#   docker compose down -v            # Stop and remove volumes
+
+services:
+  # ============================================================================
+  # MEMGRAPH - Primary Graph Database
+  # ============================================================================
+  # Stores both Graph A (codebase structure) and Graph B (episodic history)
+  # with native vector index support for semantic search.
+  #
+  # SECURITY: Bound to localhost only (Pillar 2.3)
+  # ============================================================================
+  memgraph:
+    image: memgraph/memgraph-mage:3.7.2
+    container_name: helix-memgraph
+    ports:
+      - "127.0.0.1:7687:7687" # Bolt protocol (localhost only)
+      - "127.0.0.1:7444:7444" # Memgraph Lab UI (localhost only)
+    environment:
+      - MEMGRAPH_ENTERPRISE_LICENSE=${MEMGRAPH_LICENSE:-}
+      - MEMGRAPH_ORGANIZATION_NAME=${MEMGRAPH_ORG:-helix}
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+      - memgraph_logs:/var/log/memgraph
+      - ./scripts/init-memgraph.cypher:/var/lib/memgraph/init.cypher:ro
+    command:
+      - "--log-level=WARNING"
+      - "--memory-limit=2048"
+      - "--storage-properties-on-edges=true"
+      - "--storage-snapshot-interval-sec=300"
+      - "--storage-wal-enabled=true"
+      - "--query-execution-timeout-sec=30"
+    healthcheck:
+      test: [ "CMD-SHELL", "echo 'RETURN 1;' | mgconsole || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3G
+        reservations:
+          cpus: "0.5"
+          memory: 1G
+    restart: unless-stopped
+    networks:
+      - helix-network
+
+  # ============================================================================
+  # REDIS - Message Broker
+  # ============================================================================
+  # Bounded stream for Rust Observer → Python Orchestrator communication.
+  # Configured with MAXLEN policy and Consumer Group support (CEW-002).
+  #
+  # SECURITY: Bound to localhost only (Pillar 2.3)
+  # ============================================================================
+  redis:
+    image: redis:7.2.4-alpine
+    container_name: helix-redis
+    ports:
+      - "127.0.0.1:6889:6889" # Custom port to avoid conflicts, localhost only
+    volumes:
+      - redis_data:/data
+      - ./config/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    restart: unless-stopped
+    networks:
+      - helix-network
+
+  # ============================================================================
+  # REDIS COMMANDER - Web UI for Redis (Development Only)
+  # ============================================================================
+  # Optional: Provides web-based Redis inspection during development.
+  # Remove or disable in production deployments.
+  #
+  # SECURITY: Bound to localhost only (Pillar 2.3)
+  # ============================================================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: helix-redis-ui
+    ports:
+      - "127.0.0.1:8081:8081" # localhost only
+    environment:
+      - REDIS_HOSTS=local:redis:6889
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+    restart: unless-stopped
+    networks:
+      - helix-network
+    profiles:
+      - dev # Only starts with: docker compose --profile dev up
+
+# ==============================================================================
+# VOLUMES - Persistent Storage
+# ==============================================================================
+volumes:
+  memgraph_data:
+    driver: local
+    name: helix_memgraph_data
+  memgraph_logs:
+    driver: local
+    name: helix_memgraph_logs
+  redis_data:
+    driver: local
+    name: helix_redis_data
+
+# ==============================================================================
+# NETWORKS - Service Communication
+# ==============================================================================
+networks:
+  helix-network:
+    driver: bridge
+    name: helix-network
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

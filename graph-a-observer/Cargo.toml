@@ -1,0 +1,71 @@
+[package]
+name = "graph-a-observer"
+version = "0.1.0"
+edition = "2021"
+authors = ["Project Helix Team"]
+description = "Real-time AST observer for Graph A (The Map) - watches filesystem and syncs codebase structure to Memgraph"
+license = "MIT"
+repository = "https://github.com/helix-project/helix"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1.36", features = ["full"] }
+
+# File system watching with debouncing
+notify = "6.1"
+notify-debouncer-mini = "0.4"
+
+# AST parsing - Tree-sitter core
+tree-sitter = "0.20"
+
+# Tree-sitter language parsers (Blueprint: 5 languages)
+tree-sitter-rust = "0.20"
+tree-sitter-python = "0.20"
+tree-sitter-javascript = "0.20"
+tree-sitter-go = "0.20"
+tree-sitter-java = "0.20"
+
+# Graph database (Memgraph/Neo4j Bolt protocol)
+neo4rs = "0.7"
+
+# Message queue (Redis Streams)
+redis = { version = "0.27", features = ["aio", "tokio-comp", "streams"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Hashing (for structural AST hashes)
+sha2 = "0.10"
+
+# Environment variables
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# UUID generation for node IDs
+uuid = { version = "1.7", features = ["v4"] }
+
+# Async channels for event passing
+tokio-stream = "0.1"
+futures = "0.3"
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = "3.10"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

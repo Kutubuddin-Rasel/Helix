@@ -1,0 +1,84 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph-b-orchestrator"
+version = "0.1.0"
+description = "AI state orchestrator for Graph B (The Story) - manages episodic memory and intent history for Project Helix"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+authors = [
+    {name = "Project Helix Team"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # AI State Machine
+    "langgraph>=0.1.0",
+    "langchain-core>=0.1.0",
+
+    # Graph Database (Memgraph/Neo4j Bolt Protocol)
+    "neo4j>=5.17.0",
+
+    # Message Queue (Redis Streams with Consumer Groups)
+    "redis>=5.0.0",
+
+    # Local Embeddings (CPU-based)
+    "fastembed>=0.2.0",
+
+    # PII Detection (Microsoft Presidio)
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+
+    # MCP (Model Context Protocol)
+    "mcp>=1.0.0",
+
+    # Utilities
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "structlog>=24.0.0",
+    "rich>=13.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",
+    "mypy>=1.8.0",
+]
+
+[project.scripts]
+helix-orchestrator = "graph_b_orchestrator.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

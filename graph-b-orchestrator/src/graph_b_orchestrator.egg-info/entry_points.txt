@@ -1,0 +1,2 @@
+[console_scripts]
+helix-orchestrator = graph_b_orchestrator.main:main
