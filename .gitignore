@@ -2,6 +2,8 @@
 .agent/
 docs/
 config/
+CONTRIBUTING.md
+.env.example
 
 # Secrets & Local Config
 .env
